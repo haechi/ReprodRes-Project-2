@@ -1,4 +1,17 @@
-# Reproducible Research Project 2: NOAA Database Analysis
+---
+title: 'Reproducible Research Project 2: NOAA Database Analysis'
+author: "Alexander Zhou"
+date: "9/12/2017"
+output: html_document
+keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.path = "./figures/")
+require(ggplot2)
+library(data.table)
+library(dplyr)
+```
 
 ### Synopsis
 
@@ -15,8 +28,7 @@ The following questions are adressed:
 Variables are overwritten with newly calculated data of the same variable, to reduce memory footprint. 
 
 Load data
-
-```r
+```{r load_data, cache = TRUE}
 if (!file.exists("repdata-data-StormData.csv.bz2")) { 
   download.file(
     "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", 
@@ -30,8 +42,7 @@ if (!exists("storm")) {
 
 Handle the undocumented exponent value of PROPDMGEXP and CROPDMGEXP according to [this document](http://rpubs.com/flyingdisc/PROPDMGEXP). First all characters in PROPDMGEXP and CROPDMGEXP are converted to uppercase. This chunk is very slow due to the updating of all columns by reference. 
 
-
-```r
+```{r dm_exp, cache = TRUE}
 cols <- c("PROPDMGEXP", "CROPDMGEXP")
 storm[, (cols) := c(lapply(.SD, toupper)), .SDcols = cols]
 
@@ -52,28 +63,24 @@ storm[is.na(CROPDMGEXP), CROPDMGEXP := 0 ]
 ```
 
 Summarize crop and property damages
-
-```r
+```{r cal_damages}
 storm$DAMAGES <- storm$CROPDMG * storm$CROPDMGEXP + storm$PROPDMG * storm$PROPDMGEXP
 ```
 
 Subset the dataset to include only the needed data
-
-```r
+```{r sub_storm}
 storm <- storm[,c("EVTYPE", "FATALITIES", "INJURIES", "DAMAGES")]
 ```
 
 Aggregate event names
-
-```r
+```{r agg_events}
 storm$EVTYPE <- gsub("^HEAT$", "EXCESSIVE HEAT", storm$EVTYPE)
 storm$EVTYPE <- gsub("^TSTM WIND$", "STRONG WIND", storm$EVTYPE)
 storm$EVTYPE <- gsub("^THUNDERSTORM WIND$", "STRONG WIND", storm$EVTYPE)
 ```
 
 Aggregate data on fatalities
-
-```r
+```{r agg_fatalities}
 fatalities <- aggregate(storm$FATALITIES, by=list(storm$EVTYPE), FUN=sum, na.rm=TRUE)
 colnames(fatalities) = c("EVTYPE", "FATALITIES")
 fatalities <- fatalities[order(-fatalities$FATALITIES),] 
@@ -81,8 +88,7 @@ fatalities$EVTYPE <- factor( fatalities$EVTYPE, levels=fatalities$EVTYPE, ordere
 ```
 
 Aggregate data on injuries
-
-```r
+```{r agg_injuries}
 injuries <- aggregate(storm$INJURIES, by=list(storm$EVTYPE), FUN=sum, na.rm=TRUE)
 colnames(injuries) = c("EVTYPE", "INJURIES")
 injuries <- injuries[order(-injuries$INJURIES),] 
@@ -90,8 +96,7 @@ injuries$EVTYPE <- factor(injuries$EVTYPE, levels=injuries$EVTYPE, ordered=TRUE)
 ```
 
 Aggregate data on damages
-
-```r
+```{r agg_damages}
 damages <- aggregate(storm$DAMAGES, by=list(storm$EVTYPE), FUN=sum, na.rm=TRUE)
 colnames(damages) = c("EVTYPE", "DAMAGES")
 damages <- damages[order(-damages$DAMAGES),] 
@@ -101,8 +106,7 @@ damages$EVTYPE <- factor(damages$EVTYPE, levels=damages$EVTYPE, ordered=TRUE)
 ### Results
 
 Plot of first 10 fatalities causes by event
-
-```r
+```{r plot_fatalities}
 ggplot(data=fatalities[1:10,], aes(x=EVTYPE, y=FATALITIES)) + 
   geom_bar(aes(fill=FATALITIES), stat="identity") + 
   xlab("Event Type") + ylab("Total Fatalities") + ggtitle("Fatalities by Event Type") + 
@@ -111,11 +115,8 @@ ggplot(data=fatalities[1:10,], aes(x=EVTYPE, y=FATALITIES)) +
   theme(plot.title = element_text(lineheight=.8, face="bold")) + guides(fill=FALSE)
 ```
 
-![plot of chunk plot_fatalities](./figures/plot_fatalities-1.png)
-
 Plot first 10 injury causes by event
-
-```r
+```{r plot_injuries}
 ggplot(data=injuries[1:10,], aes(x=EVTYPE, y=INJURIES)) + 
   geom_bar(aes(fill=INJURIES), stat="identity") + 
   xlab("Event Type") + ylab("Total Injuries") + ggtitle("Injuries by Event Type") + 
@@ -124,11 +125,8 @@ ggplot(data=injuries[1:10,], aes(x=EVTYPE, y=INJURIES)) +
   theme(plot.title = element_text(lineheight=.8, face="bold")) + guides(fill=FALSE)
 ```
 
-![plot of chunk plot_injuries](./figures/plot_injuries-1.png)
-
 Plot the top causes of property damages
-
-```r
+```{r plot_damages}
 ggplot(data=damages[1:10,], aes(x=EVTYPE, y=DAMAGES)) + 
   geom_bar(aes(fill=DAMAGES), stat="identity") + 
   xlab("Event Type") + ylab("Total Damage in USD") + 
@@ -137,6 +135,4 @@ ggplot(data=damages[1:10,], aes(x=EVTYPE, y=DAMAGES)) +
   theme(plot.title = element_text(hjust = 0.5)) + 
   theme(plot.title = element_text(lineheight=.8, face="bold")) + guides(fill=FALSE)
 ```
-
-![plot of chunk plot_damages](./figures/plot_damages-1.png)
 
